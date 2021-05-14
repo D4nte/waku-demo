@@ -1,6 +1,12 @@
 import "./App.css";
 import { useEffect, useState } from "react";
-import { Waku, WakuMessage, ChatMessage, getStatusFleetNodes } from "js-waku";
+import {
+  Waku,
+  WakuMessage,
+  ChatMessage,
+  StoreCodec,
+  getStatusFleetNodes,
+} from "js-waku";
 
 const ChatContentTopic = "dingpu";
 
@@ -10,6 +16,21 @@ function App() {
   const [messages, setMessages] = useState([]);
 
   useEffect(() => {
+    const handleChangeProtocols = (wakuNode, { peerId, protocols }) => {
+      console.log("Protocol changed:", peerId, protocols);
+      if (protocols.includes(StoreCodec)) {
+        console.log(`History query to`, peerId);
+        wakuNode.store.queryHistory(peerId, [ChatContentTopic]).then((res) => {
+          if (res) {
+            const chatMessages = res.map((wakuMsg) => {
+              return ChatMessage.decode(wakuMsg.payload);
+            });
+            setNewMessages(chatMessages);
+          }
+        });
+      }
+    };
+
     if (!waku) {
       Waku.create({ config: { pubsub: { emitSelf: true } } })
         .then((wakuNode) => setWaku(wakuNode))
@@ -17,6 +38,13 @@ function App() {
           console.error("Waku initialisation failed", e);
         });
     } else {
+      // libp2p behaviour: When connected to a peer, identify protocol kicks in,
+      // once complete, we know the protocol supported by the other peer
+      waku.libp2p.peerStore.on(
+        "change:protocols",
+        handleChangeProtocols.bind({}, waku)
+      );
+
       waku.relay.addObserver(
         (wakuMsg) => {
           const msg = ChatMessage.decode(wakuMsg.payload);
