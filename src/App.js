@@ -11,7 +11,7 @@ function App() {
 
   useEffect(() => {
     if (!waku) {
-      Waku.create({})
+      Waku.create({ config: { pubsub: { emitSelf: true } } })
         .then((wakuNode) => setWaku(wakuNode))
         .catch((e) => {
           console.error("Waku initialisation failed", e);
