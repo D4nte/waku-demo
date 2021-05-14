@@ -1,6 +1,6 @@
 import "./App.css";
 import { useEffect, useState } from "react";
-import { Waku, ChatMessage, getStatusFleetNodes } from "js-waku";
+import { Waku, WakuMessage, ChatMessage, getStatusFleetNodes } from "js-waku";
 
 const ChatContentTopic = "dingpu";
 
@@ -48,9 +48,23 @@ function App() {
     );
   });
 
+  const sendMessage = async (messageToSend) => {
+    const chatMessage = ChatMessage.fromUtf8String(
+      new Date(),
+      "demo",
+      messageToSend
+    );
+    const wakuMessage = WakuMessage.fromBytes(
+      chatMessage.encode(),
+      ChatContentTopic
+    );
+    await waku.relay.send(wakuMessage);
+  };
+
   return (
     <div className="App">
       <header className="App-header">
+        <ChatInput sendMessage={sendMessage} />
         <ul>{renderedMessages}</ul>
       </header>
     </div>
@@ -71,6 +85,32 @@ function Message(props) {
   return (
     <div>
       ({timestamp}) {msg.nick}: {msg.payloadAsUtf8}
+    </div>
+  );
+}
+
+function ChatInput(props) {
+  const [inputText, setInputText] = useState("");
+
+  const onChange = (event) => {
+    setInputText(event.target.value);
+  };
+
+  const onKeyDown = (event) => {
+    if (event.key === "Enter") {
+      props.sendMessage(inputText);
+      setInputText("");
+    }
+  };
+
+  return (
+    <div>
+      <input
+        type="text"
+        placeholder="Send a message...."
+        onChange={onChange}
+        onKeyDown={onKeyDown}
+      />
     </div>
   );
 }
