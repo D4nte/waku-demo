@@ -110,6 +110,7 @@ function ChatInput(props) {
         placeholder="Send a message...."
         onChange={onChange}
         onKeyDown={onKeyDown}
+        value={inputText}
       />
     </div>
   );
