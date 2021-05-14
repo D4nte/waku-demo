@@ -1,22 +1,52 @@
-import logo from './logo.svg';
-import './App.css';
+import "./App.css";
+import { useEffect, useState } from "react";
+import { Waku, getStatusFleetNodes } from "js-waku";
+
+const ChatContentTopic = "dingpu";
 
 function App() {
+  const [waku, setWaku] = useState(undefined);
+  const [newMessages, setNewMessages] = useState([]);
+  const [messages, setMessages] = useState([]);
+
+  useEffect(() => {
+    if (!waku) {
+      Waku.create({})
+        .then((wakuNode) => setWaku(wakuNode))
+        .catch((e) => {
+          console.error("Waku initialisation failed", e);
+        });
+    } else {
+      waku.relay.addObserver(
+        (msg) => {
+          setNewMessages([msg]);
+        },
+        [ChatContentTopic]
+      );
+
+      getStatusFleetNodes().then((nodes) => {
+        nodes.forEach((addr) => {
+          console.log(`Dialing ${addr}`);
+          waku.dial(addr).then(() => console.log(`Connected to ${addr}`));
+        });
+      });
+    }
+  }, [waku]);
+
+  if (newMessages.length !== 0) {
+    const allMessages = messages.concat(newMessages);
+    setMessages(allMessages);
+    setNewMessages([]);
+  }
+
+  const renderedMessages = messages.map((msg) => {
+    return <li>{msg.payloadAsUtf8}</li>;
+  });
+
   return (
     <div className="App">
       <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
+        <ul>{renderedMessages}</ul>
       </header>
     </div>
   );
