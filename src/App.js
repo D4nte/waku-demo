@@ -1,6 +1,6 @@
 import "./App.css";
 import { useEffect, useState } from "react";
-import { Waku, getStatusFleetNodes } from "js-waku";
+import { Waku, ChatMessage, getStatusFleetNodes } from "js-waku";
 
 const ChatContentTopic = "dingpu";
 
@@ -18,7 +18,8 @@ function App() {
         });
     } else {
       waku.relay.addObserver(
-        (msg) => {
+        (wakuMsg) => {
+          const msg = ChatMessage.decode(wakuMsg.payload);
           setNewMessages([msg]);
         },
         [ChatContentTopic]
@@ -40,7 +41,11 @@ function App() {
   }
 
   const renderedMessages = messages.map((msg) => {
-    return <li>{msg.payloadAsUtf8}</li>;
+    return (
+      <li>
+        <Message msg={msg} />
+      </li>
+    );
   });
 
   return (
@@ -53,3 +58,19 @@ function App() {
 }
 
 export default App;
+
+function Message(props) {
+  const msg = props.msg;
+  const timestamp = msg.timestamp.toLocaleString([], {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: false,
+  });
+  return (
+    <div>
+      ({timestamp}) {msg.nick}: {msg.payloadAsUtf8}
+    </div>
+  );
+}
